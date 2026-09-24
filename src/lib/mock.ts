@@ -113,11 +113,11 @@ function nseIndicesLive(date: string, seq: number): Row[] {
   const day = ddmmyyyyToDate(date);
   return (
     [
-      ["NIFTY 50", 24850],
-      ["NIFTY BANK", 55900],
-      ["NIFTY IT", 36200],
-      ["NIFTY NEXT 50", 67100],
-      ["NIFTY MIDCAP 100", 57300],
+      ["NIFTY", 24850],
+      ["BANKNIFTY", 55900],
+      ["NIFTYIT", 36200],
+      ["NIFTYJUNIOR", 67100],
+      ["NIFTYMIDCAP", 57300],
     ] as const
   ).map(([symbol, prev], i) => {
     let close: number = prev;
@@ -161,13 +161,35 @@ function nseAdjPrice(date: string): Row[] {
   });
 }
 
+/** Index membership: every mock company is in NIFTY 50 (20); banks also in NIFTY BANK (21), IT in NIFTY IT (22). */
+function compIndexpart(): Row[] {
+  const rows: Row[] = [];
+  COMPANIES.forEach(([fincode, symbol, , industry], i) => {
+    const codes = [20];
+    if (industry.startsWith("Bank")) codes.push(21);
+    if (industry === "IT - Software") codes.push(22);
+    for (const code of codes)
+      rows.push({ FINCODE: fincode, SCRIPCODE: 500000 + i * 7, SYMBOL: symbol, INDEX_CODE: code, Flag: "A" });
+  });
+  return rows;
+}
+
 function indicesMaster(): Row[] {
-  return ["NIFTY 50", "NIFTY BANK", "NIFTY IT", "NIFTY NEXT 50", "NIFTY MIDCAP 100"].map(
-    (name, i) => ({
+  // Accord uses short NSE codes in INDEX_NAME and the full name in INDEX_LNAME.
+  return (
+    [
+      ["NIFTY", "Nifty 50"],
+      ["BANKNIFTY", "Nifty Bank"],
+      ["NIFTYIT", "Nifty IT"],
+      ["NIFTYJUNIOR", "Nifty Next 50"],
+      ["NIFTYMIDCAP", "Nifty Midcap 100"],
+    ] as const
+  ).map(
+    ([name, lname], i) => ({
       INDEX_CODE: 20 + i,
       EXCHANGE: "NSE",
       INDEX_NAME: name,
-      INDEX_LNAME: `${name} Index`,
+      INDEX_LNAME: lname,
       flag: "A",
     }),
   );
@@ -201,7 +223,12 @@ export function mockRows(dataset: Dataset, date: string, seq: number): Row[] {
     case "nse-adj-price":
       return nseAdjPrice(date);
     case "indices-master":
-      return indicesMaster();
+      return [
+        ...indicesMaster(),
+        { INDEX_CODE: 1, EXCHANGE: "BSE", INDEX_NAME: "SENSEX", INDEX_LNAME: "S&P BSE SENSEX", flag: "A" },
+      ];
+    case "comp-indexpart":
+      return compIndexpart();
     default:
       return generic(dataset);
   }

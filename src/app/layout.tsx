@@ -28,6 +28,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             <Link href="/live" className="whitespace-nowrap text-sm text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white">
               NSE Live
             </Link>
+            <Link href="/indices" className="whitespace-nowrap text-sm text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white">
+              Nifty 50 / Indices
+            </Link>
             {mock && (
               <span className="ml-auto rounded bg-violet-600 px-2 py-0.5 text-xs font-medium text-white">
                 MOCK MODE

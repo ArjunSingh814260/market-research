@@ -16,6 +16,8 @@ Open http://localhost:3000.
 - **Data Explorer** (`/`) – pick any of the 30 documented feeds, pick a date, click **Fetch**. Search, sort, and download the result as CSV/JSON.
 - **NSE Live** (`/live`) – fetches intraday files `yyyymmdd01`, `02`, `03`… in order, merges them, and shows gainers, losers, most active and market breadth. **Catch up** reads every file for a past date; **Start polling** follows a live trading day.
 
+- **Nifty 50 / Indices** (`/indices`) – choose an index (NIFTY 50 by default), see its level, advances/declines, and every constituent's price. See "Fetching Nifty 50 stocks" below.
+
 The sample data Accord shared is for **31 July 2026** (`31072026`), which is the default date.
 
 ## ⚠️ IP whitelisting (read this first)
@@ -81,6 +83,19 @@ It returns `{ ok, status, count, rows, message, filename, url (token masked), �
 
 As the tech doc describes: fetch `…01`; once it's applied, move to `…02` on the next interval; if a file isn't there yet (204), **retry the same number**. See `src/app/live/page.tsx`.
 
+### Fetching Nifty 50 stocks
+
+There's no single "Nifty 50" call. You join three feeds (all in the Stock Prices doc):
+
+1. `Indicesmaster` (section `Master`) → find the row where `EXCHANGE = NSE` and `INDEX_NAME = NIFTY 50` → its `INDEX_CODE`
+2. `Comp_Indexpart` (section `Master`) → all rows with that `INDEX_CODE` → the 50 `SYMBOL`s / `FINCODE`s
+3. `NseStocksLive` intraday files → keep rows whose `SYMBOL` is in that list (prefer `SERIES = EQ`)
+4. Optional: `NSEIndicesLive` → the row where `Symbol = NIFTY 50` gives the index level itself
+
+`/api/index-constituents?date=31072026&index=NIFTY 50` does steps 1–2 on the server and caches them. The `/indices` page does steps 3–4. The same approach works for Nifty Bank, Nifty IT, and so on.
+
+**Important:** master feeds are *incremental*. On most days `Comp_Indexpart` only contains changes, not the full list. When you subscribe, Accord gives you a one‑time full dump. Save it as `data/Indicesmaster.json` and `data/Comp_Indexpart.json`, and the route merges the daily feed on top. Until then, the page lets you paste symbols by hand.
+
 ### A / O / D flags
 
 Each row has a `Flag`:
@@ -97,6 +112,8 @@ src/
     api/accord/route.ts   ← server proxy to Accord
     page.tsx              ← Data Explorer
     live/page.tsx         ← NSE live prices
+    indices/page.tsx      ← Nifty 50 / any index constituents
+    api/index-constituents/route.ts ← Indicesmaster + Comp_Indexpart join
     layout.tsx
   components/
     DataTable.tsx         ← search / sort / paginate / CSV
@@ -125,4 +142,3 @@ src/
 - Accord limits how often you can call each feed (see `*_Frequency.xlsx`, e.g. Company Master 4–6 hits/day). Don't poll master files in a loop.
 - After you subscribe, Accord may change filenames and sections. Update `src/lib/datasets.ts`.
 - For production, schedule a job (cron) that pulls each feed at its published time into a database, and have the frontend read from the database instead of calling Accord on every page view.
-# market-research
