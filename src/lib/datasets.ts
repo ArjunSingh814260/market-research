@@ -10,8 +10,12 @@
  * Only `filename` and `section` change per feed. Intraday feeds use a
  * sequential filename (yyyymmdd + nn, starting at 01) instead of a fixed name.
  *
+ * Mutual Fund feeds live in ./datasets.mf.ts and are appended below.
+ *
  * This file is safe to import from both client and server code (no secrets).
  */
+
+import { MF_DATASETS } from "./datasets.mf";
 
 export type DatasetGroup =
   | "Stock Prices"
@@ -19,7 +23,11 @@ export type DatasetGroup =
   | "Registrar & Board"
   | "Annual Financials"
   | "Quarterly Results"
-  | "Equity & Shareholding";
+  | "Equity & Shareholding"
+  | "Mutual Fund – Masters"
+  | "Mutual Fund – Portfolio & AUM"
+  | "Mutual Fund – NAV & Returns"
+  | "Mutual Fund – Additional";
 
 export interface Dataset {
   /** Stable id used by the app's /api/accord route */
@@ -299,6 +307,9 @@ export const DATASETS: Dataset[] = [
     description: "Shareholder category codes.",
     frequency: "1× daily, 10:30 PM",
   },
+
+  // ───────────── Mutual funds (see datasets.mf.ts) ─────────────
+  ...MF_DATASETS,
 ];
 
 export function getDataset(id: string): Dataset | undefined {
@@ -316,4 +327,8 @@ export const GROUPS: DatasetGroup[] = [
   "Annual Financials",
   "Quarterly Results",
   "Equity & Shareholding",
+  "Mutual Fund – Masters",
+  "Mutual Fund – Portfolio & AUM",
+  "Mutual Fund – NAV & Returns",
+  "Mutual Fund – Additional",
 ];
