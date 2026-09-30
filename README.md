@@ -49,8 +49,12 @@ https://contentapi.accordwebservices.com/RawData/GetRawDataJSON
 | Quarterly results | `Resultsf_IND_Ex1` / `Resultsf_IND_Cons_Ex1` | `Fundamental` |
 | Company equity | `company_equity` / `company_equity_cons` | `CompanyEquity` |
 | Shareholding | `Shpsummary`, `Shp_details`, `Shp_catmaster_2` | `Fundamental` |
+| Mutual fund masters (AMC, schemes, SIP/STP/SWP, loads…) | `Scheme_master`, `Scheme_details`, `Amc_mst_new`, `Mf_sip`… | `MFMaster` |
+| Mutual fund NAV, returns, ratios, dividends | `Currentnav`, `Navhist`, `Mf_return`, `Divdetails`… | `MFNav` |
+| Mutual fund portfolio & AUM | `Mf_portfolio`, `scheme_aum`, `Amc_paum`… | `MFPortfolio` |
+| Mutual fund additional (expense ratio, bulk deals…) | `Expenceratio_Ex1`, `MFBULKDEALS`, `Mergedschemes`… | `MFOther` |
 
-The full list is in `src/lib/datasets.ts`.
+The full list is in `src/lib/datasets.ts` (the 56 mutual fund feeds, from `MarketWorks_JsonTechDoc_29092026`, are in `src/lib/datasets.mf.ts`).
 
 **The browser never calls Accord directly.** It calls this app's own route, and the route calls Accord from the server:
 
