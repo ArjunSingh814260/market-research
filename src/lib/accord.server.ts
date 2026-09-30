@@ -1,5 +1,8 @@
 import "server-only";
 
+import { mkdir, readFile, writeFile } from "node:fs/promises";
+import path from "node:path";
+
 import { getDataset, isIntraday, type Dataset } from "./datasets";
 import { intradayFilename } from "./dates";
 import { mockRows } from "./mock";
@@ -173,4 +176,47 @@ export async function fetchAccord(opts: {
         : `Could not reach Accord: ${e.message}. If you're on a restricted network or non-whitelisted IP, try ACCORD_MOCK=true to preview the UI.`,
     };
   }
+}
+
+// ── Cached fetch ────────────────────────────────────────────────
+//
+// Accord caps hits per file per day (see *_Frequency.xlsx – most fundamentals
+// files allow 1 + 3 extra hits a day), and every call returns the whole file
+// for all companies. So pages that need many files (the company page) read
+// each file once per date and keep it:
+//   memory → data/cache/<ddmmyyyy>/<datasetId>.json → Accord
+// Only successful, non-empty responses are cached. Delete the folder to refetch.
+
+const CACHE_DIR = path.join(process.cwd(), "data", "cache");
+const memory = new Map<string, Promise<FetchResult>>();
+
+export function fetchAccordCached(datasetId: string, date: string): Promise<FetchResult> {
+  if (process.env.ACCORD_MOCK === "true") return fetchAccord({ datasetId, date });
+
+  const key = `${date}/${datasetId}`;
+  let hit = memory.get(key);
+  if (!hit) {
+    hit = loadCached(datasetId, date);
+    memory.set(key, hit);
+    // Don't keep failures in memory, so the next request retries.
+    hit.then((r) => {
+      if (!r.ok || r.count === 0) memory.delete(key);
+    });
+  }
+  return hit;
+}
+
+async function loadCached(datasetId: string, date: string): Promise<FetchResult> {
+  const file = path.join(CACHE_DIR, date, `${datasetId}.json`);
+  try {
+    return JSON.parse(await readFile(file, "utf8")) as FetchResult;
+  } catch {
+    // not cached yet
+  }
+  const res = await fetchAccord({ datasetId, date });
+  if (res.ok && res.count > 0) {
+    await mkdir(path.dirname(file), { recursive: true });
+    await writeFile(file, JSON.stringify(res));
+  }
+  return res;
 }

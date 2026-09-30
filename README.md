@@ -16,6 +16,8 @@ Open http://localhost:3000.
 - **Data Explorer** (`/`) – pick any of the 30 documented feeds, pick a date, click **Fetch**. Search, sort, and download the result as CSV/JSON.
 - **NSE Live** (`/live`) – fetches intraday files `yyyymmdd01`, `02`, `03`… in order, merges them, and shows gainers, losers, most active and market breadth. **Catch up** reads every file for a past date; **Start polling** follows a live trading day.
 
+- **Company Fundamentals** (`/company`) – search any company in `Company_master` and see its overview, board, balance sheet, P&L, cash flow, ratios, quarterly/half-yearly/annual results and shareholding, standalone or consolidated. See "Company fundamentals" below.
+
 - **Nifty 50 / Indices** (`/indices`) – choose an index (NIFTY 50 by default), see its level, advances/declines, and every constituent's price. See "Fetching Nifty 50 stocks" below.
 
 The sample data Accord shared is for **31 July 2026** (`31072026`), which is the default date.
@@ -103,6 +105,17 @@ Each row has a `Flag`:
 - `D` – delete the row with that primary key
 
 `applyFlags()` in `src/lib/rows.ts` does this in memory. It's the same logic you'll run as SQL `INSERT … ON CONFLICT UPDATE` / `DELETE` once you store the feeds in a database. Primary keys for every feed are in `src/lib/datasets.ts`.
+
+### Company fundamentals
+
+`/api/company?date=31072026` lists companies; `/api/company?date=31072026&fincode=100325` returns one company with every statement already laid out (`src/lib/fundamentals.server.ts`). It follows `CompanyFundamentals/CompanyFundamentals_DataFeedAPI_Display_Techdoc.pdf`:
+
+- **Display formats.** Row order, labels, indentation, bold and formulas come from the `*_Displayformat.xlsx` files, converted to `src/lib/displayFormats.json`. When Accord emails new format files, put them in `CompanyFundamentals/` and run `pip install openpyxl && python3 scripts/build_display_formats.py`.
+- **Which format.** `Company_master.FFORMAT` picks the format for the balance sheet (`BNK`/`FIN`, otherwise `MAN`), P&L and cash flow (industry formats such as `AIR`, `SOW`, `POW`, otherwise `MAN`) and ratios (`BNK`, otherwise `MAN`). `RFORMAT` picks the results format. Rows with `Type_Flag = C` only appear in consolidated statements.
+- **Units.** Everything is shown in ₹ crore. Annual rows with `UseUnit = T` are scaled by each row's `Unit` (1 / 1,000 / lakh / million / crore). Results are published in ₹ million. EPS, percentages and counts are left unscaled.
+- **Results.** When both `Q` and `QR` (or `H`/`HR`, `A`/`AR`) exist for the same `Date_End`, the revised row is used.
+- **Shareholding.** `Shp_Displayformat` lists the `nh…` (number of holders) columns. The page swaps the prefix to `tp…` (% holding) or `ns…` (number of shares).
+- **Hit limits.** Fundamentals files allow roughly 1 + 3 hits a day, and each call returns the whole file for every company. So `fetchAccordCached()` fetches each file once per date and saves it to `data/cache/<date>/<dataset>.json`, which is git-ignored. Delete that folder to fetch again.
 
 ## Project layout
 
